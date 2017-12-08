@@ -15,14 +15,24 @@ This is a mod for FiveM / GTA V that aims to create realistic vehicle failure.
 * Some cars are tougher than others. Especially mid-engine and rear-engine cars can take more frontal collisions before dying.
 
 ### Realistic Vehicle Repair
-* Type /repair in the chat to repair your vehicle. There are two types of repairs:
+* Type /repair in the chat to repair your vehicle. There are two types of repairs, depending on your location:
 #### At the mechanic
 * If you are at a mechanic your vehicle will be completely fixed, as good as new.
+* Mechanics are located several places in San Andreas. Look for the blips on the map.
 #### Not at a mechanic
-* If you are not at a mechanic, you may be able to do an emergency repair in the field.
-* You can only reattach the rusty oil plug once or twice, but after that, the vehicle will be beyond repair.
+* If you are not at a mechanic, you may be able to perform a DIY emergency repair in the field.
+* You can only reattach the oil plug once or twice, but after that, the vehicle will be beyond repair.
 * An emergency repair in the field will only make the car drivable, not completely fixed. A minor accident will most likely kill the car again.
-* If you let the damaged car sit too long, the oil will drain slowly, preventing repairs
+* If you let the damaged car sit too long, the oil will drain completely, preventing further repairs
+
+## Configuration
+
+At the top of client.lua and server.lua you can change a few things.
+
+In client.lua you can set a multiplier for damage, and a speed factor for engine self-destruction if enough damage has been done to the engine.
+You may also disable mechanics blips on the map.
+
+In server.lua you can enforce whitelisting for repairs. If you only want certain people on your server to be able to repair vehicles, turn on whitelisting and enter the steam ID's for the users.
 
 ## Download
 

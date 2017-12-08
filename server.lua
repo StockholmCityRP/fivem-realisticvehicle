@@ -1,11 +1,25 @@
+------------------------------------------
+--	iEnsomatic RealisticVehicleFailure  --
+------------------------------------------
+--
+--	Created by Jens Sandalgaard
+--	
+--	This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
+--
+--	https://github.com/iEns/RealisticVehicleFailure
+--
+
 
 local everyoneWhitelisted = true 
 
 local whitelist = 
 {
-	"steam:1234567890123456",
-	"ip:192.168.0.1"
+	"steam:123456789012345",
+	"steam:000000000000000",
+	"ip:192.168.0.1"			-- not sure if ip whitelist works?
 }
+
+
 
 function checkWhitelist(id)
 	for key, value in pairs(whitelist) do
