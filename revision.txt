@@ -1,0 +1,19 @@
+Version 0.3 beta (2017-12-08):
+* Rewrite of algorithm to fix easy explosions from bullets
+* Disabled mod for planes, trains and helicopters
+* Made sure that only the driver of the car will have the script active
+* Fixed a bug that caused /fix scripts or trainers to sometimes not work
+* Fixed bug that caused /repair at mechanic to sometimes not work
+* Enhanced compatibility with fuel scripts
+* Added a couple of mechanics
+* Code cleanup and added lots of comments to help you understand what is going on
+* More configuration options
+* New degradingFailure feature. When the vehicle gets some damage it will start to slowly degrade until just before cascading failure sets in, then it stays at that level until car takes more damage.
+* Configurable health level for final failure, balances how easy you can ignite engine fire with a gun, and how much smoke comes from a disabled engine.
+
+Version 0.2 beta (2017-12-08)
+* added /repair function
+
+
+Version 0.1 beta (2017-12-06)
+* First release

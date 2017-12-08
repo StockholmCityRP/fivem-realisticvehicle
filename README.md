@@ -23,7 +23,8 @@ This is a mod for FiveM / GTA V that aims to create realistic vehicle failure.
 * If you are not at a mechanic, you may be able to perform a DIY emergency repair in the field.
 * You can only reattach the oil plug once or twice, but after that, the vehicle will be beyond repair.
 * An emergency repair in the field will only make the car drivable, not completely fixed. A minor accident will most likely kill the car again.
-* If you let the damaged car sit too long, the oil will drain completely, preventing further repairs
+* If you let the damaged car sit too long, the oil will drain completely, preventing further repairs.
+* Electric vehicles can not be fixed by you, only by a mechanic. Technology is complex, and chewing gum just won't fix a dead battery.
 
 ## Configuration
 
