@@ -9,58 +9,58 @@
 --	https://github.com/iEns/RealisticVehicleFailure
 --
 
-local damageFactorEngine = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is ?
-local damageFactorBody = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is ?
-local damageFactorPetrolTank = 64.0				-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is ?
-local cascadingFailureSpeedFactor = 10.0		-- Sane values are 1 to 100. When vehicle health drops below a certain point, cascading failure sets in, and the health drops rapidly until the vehicle dies. Higher values means faster failure. A good starting point is 10
-local degradingHealthSpeedFactor = 10			-- Speed of slowly degrading health, but not failure. Value of 10 means that it will take about 0.5 second per health point, so degradation from 800 to 305 will take about 4 minutes of clean driving.
-local degradingFailureThreshold = 800.0			-- Below this value, health cascading failure will set in
+local damageFactorEngine = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
+local damageFactorBody = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
+local damageFactorPetrolTank = 64.0				-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 64
+local cascadingFailureSpeedFactor = 8.0			-- Sane values are 1 to 100. When vehicle health drops below a certain point, cascading failure sets in, and the health drops rapidly until the vehicle dies. Higher values means faster failure. A good starting point is 8
+local degradingHealthSpeedFactor = 10			-- Speed of slowly degrading health, but not failure. Value of 10 means that it will take about 0.25 second per health point, so degradation from 800 to 305 will take about 2 minutes of clean driving.
+local degradingFailureThreshold = 800.0			-- Below this value, slow health degradation will set in
 local cascadingFailureThreshold = 300.0			-- Below this value, health cascading failure will set in
-local engineSafeGuard = 100.0					-- Final failure value. Set it too high, and the car won't smoke when disabled. Set too low, and the car will catch fire from a single bullet to the engine. At health 100 a typical car can take 3-4 bullets to the engine before catching fire.
+local engineSafeGuard = 100.0					-- Final failure value. Set it too high, and the vehicle won't smoke when disabled. Set too low, and the car will catch fire from a single bullet to the engine. At health 100 a typical car can take 3-4 bullets to the engine before catching fire.
 local displayBlips = true						-- Show blips for mechanics locations
 
 
 -- id=446 for wrench icon, id=72 for spraycan icon
 local mechanics = {
-	{name="Mechanic", id=446, r=20.0, x=-337.0,  y=-135.0,  z=39.0},	-- LSC Burton
-	{name="Mechanic", id=446, r=20.0, x=-1155.0, y=-2007.0, z=13.0},	-- LSC by airport
-	{name="Mechanic", id=446, r=20.0, x=734.0,   y=-1085.0, z=22.0},	-- LSC La Mesa
-	{name="Mechanic", id=446, r=20.0, x=1177.0,  y=2640.0,  z=37.0},	-- LSC Harmony
-	{name="Mechanic", id=446, r=20.0, x=108.0,   y=6624.0,  z=31.0},	-- LSC Paleto Bay
-	{name="Mechanic", id=446, r=15.0, x=538.0,   y=-183.0,  z=54.0},	-- Mechanic Hawic
-	{name="Mechanic", id=446, r=10.0, x=1774.0,  y=3333.0,  z=41.0},	-- Mechanic Sandy Shores Airfield
-	{name="Mechanic", id=446, r=10.0, x=1143.0,  y=-776.0,  z=57.0},	-- Mechanic Mirror Park
-	{name="Mechanic", id=446, r=25.0, x=2508.0,  y=4103.0,  z=38.0},	-- Mechanic East Joshua Rd.
-	{name="Mechanic", id=446, r=12.0, x=2006.0,  y=3792.0,  z=32.0},	-- Mechanic Sandy Shores gas station
-	{name="Mechanic", id=446, r=22.0, x=484.0,   y=-1316.0, z=29.0},	-- Hayes Auto, Little Bighorn Ave.
-	{name="Mechanic", id=446, r=30.0, x=-1419.0, y=-450.0,  z=36.0},	-- Hayes Auto Body Shop, Del Perro
-	{name="Mechanic", id=446, r=30.0, x=268.0,   y=-1810.0, z=27.0},	-- Hayes Auto Body Shop, Davis
---	{name="Mechanic", id=446, r=20.0, x=288.0,   y=-1730.0, z=29.0},	-- Hayes Auto, Rancho (Disabled, looks like a warehouse for the Davis branch)
-	{name="Mechanic", id=446, r=25.0, x=1915.0,  y=3729.0,  z=32.0},	-- Otto's Auto Parts, Sandy Shores
+	{name="Mechanic", id=446, r=25.0, x=-337.0,  y=-135.0,  z=39.0},	-- LSC Burton
+	{name="Mechanic", id=446, r=25.0, x=-1155.0, y=-2007.0, z=13.0},	-- LSC by airport
+	{name="Mechanic", id=446, r=25.0, x=734.0,   y=-1085.0, z=22.0},	-- LSC La Mesa
+	{name="Mechanic", id=446, r=25.0, x=1177.0,  y=2640.0,  z=37.0},	-- LSC Harmony
+	{name="Mechanic", id=446, r=25.0, x=108.0,   y=6624.0,  z=31.0},	-- LSC Paleto Bay
+	{name="Mechanic", id=446, r=18.0, x=538.0,   y=-183.0,  z=54.0},	-- Mechanic Hawic
+	{name="Mechanic", id=446, r=15.0, x=1774.0,  y=3333.0,  z=41.0},	-- Mechanic Sandy Shores Airfield
+	{name="Mechanic", id=446, r=15.0, x=1143.0,  y=-776.0,  z=57.0},	-- Mechanic Mirror Park
+	{name="Mechanic", id=446, r=30.0, x=2508.0,  y=4103.0,  z=38.0},	-- Mechanic East Joshua Rd.
+	{name="Mechanic", id=446, r=16.0, x=2006.0,  y=3792.0,  z=32.0},	-- Mechanic Sandy Shores gas station
+	{name="Mechanic", id=446, r=25.0, x=484.0,   y=-1316.0, z=29.0},	-- Hayes Auto, Little Bighorn Ave.
+	{name="Mechanic", id=446, r=33.0, x=-1419.0, y=-450.0,  z=36.0},	-- Hayes Auto Body Shop, Del Perro
+	{name="Mechanic", id=446, r=33.0, x=268.0,   y=-1810.0, z=27.0},	-- Hayes Auto Body Shop, Davis
+--	{name="Mechanic", id=446, r=24.0, x=288.0,   y=-1730.0, z=29.0},	-- Hayes Auto, Rancho (Disabled, looks like a warehouse for the Davis branch)
+	{name="Mechanic", id=446, r=27.0, x=1915.0,  y=3729.0,  z=32.0},	-- Otto's Auto Parts, Sandy Shores
 	{name="Mechanic", id=446, r=45.0, x=-29.0,   y=-1665.0, z=29.0},	-- Mosley Auto Service, Strawberry
-	{name="Mechanic", id=446, r=42.0, x=-212.0,  y=-1378.0, z=31.0},	-- Glass Heroes, Strawberry
-	{name="Mechanic", id=446, r=30.0, x=258.0,   y=2594.0,  z=44.0},	-- Mechanic Harmony
-	{name="Mechanic", id=446, r=15.0, x=-32.0,   y=-1090.0, z=26.0},	-- Simeons
-	{name="Mechanic", id=446, r=20.0, x=-211.0,  y=-1325.0, z=31.0},	-- Bennys
-	{name="Mechanic", id=446, r=20.0, x=903.0,   y=3563.0,  z=34.0},	-- Auto Repair, Grand Senora Desert
-	{name="Mechanic", id=446, r=20.0, x=437.0,   y=3568.0,  z=38.0}		-- Auto Shop, Grand Senora Desert
+	{name="Mechanic", id=446, r=44.0, x=-212.0,  y=-1378.0, z=31.0},	-- Glass Heroes, Strawberry
+	{name="Mechanic", id=446, r=33.0, x=258.0,   y=2594.0,  z=44.0},	-- Mechanic Harmony
+	{name="Mechanic", id=446, r=18.0, x=-32.0,   y=-1090.0, z=26.0},	-- Simeons
+	{name="Mechanic", id=446, r=25.0, x=-211.0,  y=-1325.0, z=31.0},	-- Bennys
+	{name="Mechanic", id=446, r=25.0, x=903.0,   y=3563.0,  z=34.0},	-- Auto Repair, Grand Senora Desert
+	{name="Mechanic", id=446, r=25.0, x=437.0,   y=3568.0,  z=38.0}		-- Auto Shop, Grand Senora Desert
 }
 
 local fixMessages = {
 	"You put the oil plug back in",
 	"You stopped the oil leak using chewing gum",
 	"You repaired the oil tube with gaffer tape",
-	"You tightened the oil pan screw, no more dripping",
+	"You tightened the oil pan screw and stopped the dripping",
 	"You kicked the engine and it magically came back to life",
 	"You removed some rust from the spark tube",
-	"You yelled at your car, and it somehow had an effect"
+	"You yelled at your vehicle, and it somehow had an effect"
 }
 local fixMessageCount = 7
 local fixMessagePos = math.random(fixMessageCount)
 
 local noFixMessages = {
 	"You checked the oil plug. It's still there",
-	"You looked at your engine, it seems fine",
+	"You looked at your engine, it seemed fine",
 	"You made sure that the gaffer tape was still holding the engine together",
 	"You turned up the radio volume. It just drowned out the weird engine noises",
 	"You added rust-preventer to the spark tube. It made no difference",
@@ -126,7 +126,7 @@ AddEventHandler('iens:repair', function()
 				healthPetrolTankLast=750.0
 					SetVehicleEngineOn(vehicle, true, false )
 				SetVehicleOilLevel(vehicle,(GetVehicleOilLevel(vehicle)/3)-0.5)
-				notification("~g~" .. fixMessages[fixMessagePos] .. ", now go to a mechanic!")
+				notification("~g~" .. fixMessages[fixMessagePos] .. ", now get to a mechanic!")
 				fixMessagePos = fixMessagePos + 1
 				if fixMessagePos > fixMessageCount then fixMessagePos = 1 end
 			else
@@ -169,10 +169,10 @@ function isPedInVehicle()
 	local vehicle = GetVehiclePedIsIn(ped, false)
 	if IsPedInAnyVehicle(ped, false) then
 		-- Check if ped is in driver seat
-		if GetPedInVehicleSeat(vehicle,-1) == ped then
+		if GetPedInVehicleSeat(vehicle, -1) == ped then
 			local class = GetVehicleClass(vehicle)
-			-- We don't want planes, helicopters and trains
-			if class ~= 15 and class ~= 16 and class ~=21 then
+			-- We don't want planes, helicopters, bicycles and trains
+			if class ~= 15 and class ~= 16 and class ~=21 and class ~=13 then
 				return true
 			end
 		end
@@ -221,11 +221,11 @@ Citizen.CreateThread(function()
 				if healthEngineCurrent ~= 1000.0 or healthBodyCurrent ~= 1000.0 or healthPetrolTankCurrent ~= 1000.0 then
 
 					-- Combine the delta values
-					local healthEngineCombinedDelta = healthEngineDeltaScaled + healthBodyDeltaScaled + healthPetrolTankDeltaScaled
+					local healthEngineCombinedDelta = math.max(healthEngineDeltaScaled, healthBodyDeltaScaled, healthPetrolTankDeltaScaled)
 
 					-- If huge damage, scale back a bit
-					if healthEngineCombinedDelta > healthEngineCurrent then
-						healthEngineCombinedDelta = healthEngineCombinedDelta * 0.85
+					if healthEngineCombinedDelta > (healthEngineCurrent - engineSafeGuard) then
+						healthEngineCombinedDelta = healthEngineCombinedDelta * 0.7
 					end
 
 					-- If complete damage, but not catastrophic (ie. explosion territory) pull back a bit, to give a couple of seconds og engine runtime before dying
@@ -245,7 +245,7 @@ Citizen.CreateThread(function()
 					-- If somewhat damaged, slowly degrade until slightly before cascading failure sets in, then stop
 
 					if healthEngineNew > (cascadingFailureThreshold + 5) and healthEngineNew < degradingFailureThreshold then
-						healthEngineNew = healthEngineNew-(0.02 * degradingHealthSpeedFactor)
+						healthEngineNew = healthEngineNew-(0.038 * degradingHealthSpeedFactor)
 					end
 	
 					-- If Damage is near catastrophic, cascade the failure
