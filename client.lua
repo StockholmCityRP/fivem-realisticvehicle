@@ -9,12 +9,15 @@
 --	https://github.com/iEns/RealisticVehicleFailure
 --
 
-local damageFactor = 8.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
-local cascadingFailureSpeedFactor = 10.0	-- Sane values are 1 to 100. When vehicle health drops below a certain point, cascading failure sets in, and the health drops rapidly until the vehicle dies. Higher values means faster failure. A good starting point is 10
-local displayBlips = true					-- Show blips for mechanics locations
-local preventExplosions = true				-- If true, most explosions will be prevented while in the vehicle
-
-
+local damageFactorEngine = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is ?
+local damageFactorBody = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is ?
+local damageFactorPetrolTank = 64.0				-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is ?
+local cascadingFailureSpeedFactor = 10.0		-- Sane values are 1 to 100. When vehicle health drops below a certain point, cascading failure sets in, and the health drops rapidly until the vehicle dies. Higher values means faster failure. A good starting point is 10
+local degradingHealthSpeedFactor = 10			-- Speed of slowly degrading health, but not failure. Value of 10 means that it will take about 0.5 second per health point, so degradation from 800 to 305 will take about 4 minutes of clean driving.
+local degradingFailureThreshold = 800.0			-- Below this value, health cascading failure will set in
+local cascadingFailureThreshold = 300.0			-- Below this value, health cascading failure will set in
+local engineSafeGuard = 100.0					-- Final failure value. Set it too high, and the car won't smoke when disabled. Set too low, and the car will catch fire from a single bullet to the engine. At health 100 a typical car can take 3-4 bullets to the engine before catching fire.
+local displayBlips = true						-- Show blips for mechanics locations
 
 
 -- id=446 for wrench icon, id=72 for spraycan icon
@@ -66,17 +69,24 @@ local noFixMessages = {
 local noFixMessageCount = 6
 local noFixMessagePos = math.random(noFixMessageCount)
 
-local healthEngineLast = 9999.9
-local healthBodyLast = 9999.9
-local healthPetrolTankLast = 9999.9
+local pedInCarLast=false
+local healthEngineLast = 1000.0
 local healthEngineCurrent = 1000.0
 local healthEngineNew = 1000.0
+local healthEngineDelta = 0.0
+local healthEngineDeltaScaled = 0.0
+
+local healthBodyLast = 1000.0
 local healthBodyCurrent = 1000.0
 local healthBodyNew = 1000.0
 local healthBodyDelta = 0.0
+local healthBodyDeltaScaled = 0.0
+
+local healthPetrolTankLast = 1000.0
 local healthPetrolTankCurrent = 1000.0
 local healthPetrolTankNew = 1000.0
 local healthPetrolTankDelta = 0.0
+local healthPetrolTankDeltaScaled = 0.0
 
 -- Display blips on map
 Citizen.CreateThread(function()
@@ -94,8 +104,8 @@ end)
   
 RegisterNetEvent('iens:repair')
 AddEventHandler('iens:repair', function()
-	local ped = GetPlayerPed(-1)
-	if IsPedInAnyVehicle(ped, false) then
+	if isPedInVehicle() then
+		local ped = GetPlayerPed(-1)		
 		local vehicle = GetVehiclePedIsIn(ped, false)
 		if IsNearMechanic() then
 			SetVehicleUndriveable(vehicle,false)
@@ -107,12 +117,12 @@ AddEventHandler('iens:repair', function()
 			notification("~g~The mechanic repaired your car!")
 			return
 		end
-		if GetVehicleEngineHealth(vehicle) < 2 then
+		if GetVehicleEngineHealth(vehicle) < cascadingFailureThreshold + 5 then
 			if GetVehicleOilLevel(vehicle) > 0 then
 				SetVehicleUndriveable(vehicle,false)
-				SetVehicleEngineHealth(vehicle, 305.0)
+				SetVehicleEngineHealth(vehicle, cascadingFailureThreshold + 5)
 				SetVehiclePetrolTankHealth(vehicle, 750.0)
-				healthEngineLast=305.0
+				healthEngineLast=cascadingFailureThreshold +5
 				healthPetrolTankLast=750.0
 					SetVehicleEngineOn(vehicle, true, false )
 				SetVehicleOilLevel(vehicle,(GetVehicleOilLevel(vehicle)/3)-0.5)
@@ -147,86 +157,138 @@ function IsNearMechanic()
 	local ped = GetPlayerPed(-1)
 	local pedLocation = GetEntityCoords(ped, 0)
 	for _, item in pairs(mechanics) do
-	  local distance = GetDistanceBetweenCoords(item.x, item.y, item.z,  pedLocation["x"], pedLocation["y"], pedLocation["z"], true)
-	  if distance <= item.r then
-		return true
-	  end
+		local distance = GetDistanceBetweenCoords(item.x, item.y, item.z,  pedLocation["x"], pedLocation["y"], pedLocation["z"], true)
+		if distance <= item.r then
+			return true
+		end
 	end
-  end
+end
+
+function isPedInVehicle()
+	local ped = GetPlayerPed(-1)
+	local vehicle = GetVehiclePedIsIn(ped, false)
+	if IsPedInAnyVehicle(ped, false) then
+		-- Check if ped is in driver seat
+		if GetPedInVehicleSeat(vehicle,-1) == ped then
+			local class = GetVehicleClass(vehicle)
+			-- We don't want planes, helicopters and trains
+			if class ~= 15 and class ~= 16 and class ~=21 then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 
 Citizen.CreateThread(function()
 	while true do
 	Citizen.Wait(50)
 		local ped = GetPlayerPed(-1)
-		if IsPedInAnyVehicle(ped, false) then
-			vehicle = GetVehiclePedIsUsing(ped)
+		if isPedInVehicle() then
+			vehicle = GetVehiclePedIsIn(ped, false)
+
 			healthEngineCurrent = GetVehicleEngineHealth(vehicle)
 			if healthEngineCurrent == 1000 then healthBodyLast = 1000.0 end
 			healthEngineNew = healthEngineCurrent
+			healthEngineDelta = healthEngineLast - healthEngineCurrent
+			healthEngineDeltaScaled = healthEngineDelta * damageFactorEngine
+			
 			healthBodyCurrent = GetVehicleBodyHealth(vehicle)
 			if healthBodyCurrent == 1000 then healthBodyLast = 1000.0 end
 			healthBodyNew = healthBodyCurrent
+			healthBodyDelta = healthBodyLast - healthBodyCurrent
+			healthBodyDeltaScaled = healthBodyDelta * damageFactorBody
+			
 			healthPetrolTankCurrent = GetVehiclePetrolTankHealth(vehicle)
 			if healthPetrolTankCurrent == 1000 then healthPetrolTankLast = 1000.0 end
 			healthPetrolTankNew = healthPetrolTankCurrent 
-			if healthEngineCurrent > 2 and healthPetrolTankCurrent > 2 then
+			healthPetrolTankDelta = healthPetrolTankLast-healthPetrolTankCurrent
+			healthPetrolTankDeltaScaled = healthPetrolTankDelta * damageFactorPetrolTank
+			
+			if healthEngineCurrent > engineSafeGuard+1 then
 				SetVehicleUndriveable(vehicle,false)
 			end
 
-			if healthEngineCurrent < 2 then
+			if healthEngineCurrent <= engineSafeGuard+1 then
 				SetVehicleUndriveable(vehicle,true)
-			elseif healthEngineLast ~= 9999.9 then
-				if healthEngineLast - healthEngineCurrent > 0 then
-					healthEngineNew = healthEngineLast - ((healthEngineLast - healthEngineCurrent) * damageFactor)
-				end
-				if healthEngineNew < 300 then
-					healthEngineNew = healthEngineNew-(0.1 * cascadingFailureSpeedFactor)
-				end
-				if healthEngineNew < 1 then
-					healthEngineNew = 1.0
-				end
 			end
 
-			if healthBodyLast ~= 9999.9 then
-				healthBodyDelta = healthBodyLast - healthBodyCurrent
-				if healthBodyDelta > 0 then
-					healthBodyNew = healthBodyLast - ((healthBodyLast - healthBodyCurrent) * damageFactor)
+			if pedInCarLast == true then
+				-- Damage happened while in the car, can be multiplied
+
+				-- Only do calculations if any damage is present on the car. Prevents weird behavior when fixing using trainer or other script
+				if healthEngineCurrent ~= 1000.0 or healthBodyCurrent ~= 1000.0 or healthPetrolTankCurrent ~= 1000.0 then
+
+					-- Combine the delta values
+					local healthEngineCombinedDelta = healthEngineDeltaScaled + healthBodyDeltaScaled + healthPetrolTankDeltaScaled
+
+					-- If huge damage, scale back a bit
+					if healthEngineCombinedDelta > healthEngineCurrent then
+						healthEngineCombinedDelta = healthEngineCombinedDelta * 0.85
+					end
+
+					-- If complete damage, but not catastrophic (ie. explosion territory) pull back a bit, to give a couple of seconds og engine runtime before dying
+					if healthEngineCombinedDelta > healthEngineCurrent then
+						healthEngineCombinedDelta = healthEngineCurrent - (cascadingFailureThreshold / 5)
+					end
+
+
+
+					------- Calculate new value
+
+					healthEngineNew = healthEngineLast - healthEngineCombinedDelta
+
+
+					------- Sanity Check on new values and further manipulations
+
+					-- If somewhat damaged, slowly degrade until slightly before cascading failure sets in, then stop
+
+					if healthEngineNew > (cascadingFailureThreshold + 5) and healthEngineNew < degradingFailureThreshold then
+						healthEngineNew = healthEngineNew-(0.02 * degradingHealthSpeedFactor)
+					end
+	
+					-- If Damage is near catastrophic, cascade the failure
+					if healthEngineNew < cascadingFailureThreshold then
+						healthEngineNew = healthEngineNew-(0.1 * cascadingFailureSpeedFactor)
+					end
+
+					-- Prevent Engine going to or below zero. Ensures you can reenter a damaged car. 
+					if healthEngineNew < engineSafeGuard then
+						healthEngineNew = engineSafeGuard 
+					end
+
+					-- Prevent Explosions
+					if healthPetrolTankCurrent < 750 then
+						healthPetrolTankNew = 750.0
+					end
+
+					-- Prevent negative body damage.
+					if healthBodyNew < 0  then
+						healthBodyNew = 0.0
+					end
 				end
-				if healthBodyNew < 0 then
-					healthBodyNew = 0.0
-				end
-				SetVehicleBodyHealth(vehicle, healthBodyNew)
-				healthBodyLast = healthBodyNew
 			else
-				if healthBodyCurrent < 300 then
-					SetVehicleBodyHealth(vehicle,300.0)
-					healthBodyCurrent=300.0
-					healthBodyLast=300.0
+				-- Just got in the vehicle. Damage can not be multiplied this round
+
+				-- If body damage catastrophic, reset somewhat so we can get new damage to multiply
+				if healthBodyCurrent < cascadingFailureThreshold then
+					healthBodyNew = cascadingFailureThreshold
 				end
+				pedInCarLast = true
 			end
 
-			if healthPetrolTankLast ~= 9999.9 then
-				healthPetrolTankDelta = healthPetrolTankLast-healthPetrolTankCurrent
-				if healthPetrolTankDelta > 0 then
-					healthPetrolTankLast = healthPetrolTankCurrent
-				end
-				if healthPetrolTankCurrent < 750 and preventExplosions == true then
-					SetVehiclePetrolTankHealth(vehicle, 750.0)
-					healthPetrolTankLast = 750
-				end
-			end
+			-- set the actual new values
+			if healthEngineNew ~= healthEngineCurrent then SetVehicleEngineHealth(vehicle, healthEngineNew) end
+			if healthBodyNew ~= healthBodyCurrent then SetVehicleBodyHealth(vehicle, healthBodyNew) end
+			if healthPetrolTankNew ~= healthPetrolTankCurrent then SetVehiclePetrolTankHealth(vehicle, healthPetrolTankNew) end
 
-			healthEngineNew = healthEngineNew - (healthPetrolTankDelta * damageFactor * 8) - (healthBodyDelta * damageFactor)
-			if healthEngineNew < 1 then healthEngineNew = 1.0 end
-			SetVehicleEngineHealth(vehicle, healthEngineNew)
-
+			-- Store current values, so we can calculate delta next time around
 			healthEngineLast = healthEngineNew
-			healthBodyLast = GetVehicleBodyHealth(vehicle)
-			healthPetrolTankLast = GetVehiclePetrolTankHealth(vehicle)
+			healthBodyLast = healthBodyNew
+			healthPetrolTankLast = healthPetrolTankNew
 		else
-			healthEngineLast = 9999.9
-			healthBodyLast = 9999.9
-			healthPetrolTankLast = 9999.9
+			pedInCarLast = false
 		end
 	end
 end)
