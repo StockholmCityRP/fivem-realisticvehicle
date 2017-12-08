@@ -37,7 +37,9 @@ local mechanics = {
 	{name="Mechanic", id=446, r=42.0, x=-212.0,  y=-1378.0, z=31.0},	-- Glass Heroes, Strawberry
 	{name="Mechanic", id=446, r=30.0, x=258.0,   y=2594.0,  z=44.0},	-- Mechanic Harmony
 	{name="Mechanic", id=446, r=15.0, x=-32.0,   y=-1090.0, z=26.0},	-- Simeons
-	{name="Mechanic", id=446, r=20.0, x=-211.0,  y=-1325.0, z=31.0}		-- Bennys
+	{name="Mechanic", id=446, r=20.0, x=-211.0,  y=-1325.0, z=31.0},	-- Bennys
+	{name="Mechanic", id=446, r=20.0, x=903.0,  y=3563.0, z=34.0},		-- Auto Repair, Grand Senora Desert
+	{name="Mechanic", id=446, r=20.0, x=437.0,  y=3568.0, z=38.0}		-- Auto Shop, Grand Senora Desert
 }
 
 local fixMessages = {
@@ -58,7 +60,7 @@ local noFixMessages = {
 	"You made sure that the gaffer tape was still holding the engine together",
 	"You turned up the radio volume. It just drowned out the weird engine noises",
 	"You added rust-preventer to the spark tube. It made no difference",
-	"Never fix something that ain't broken they said. You didn't listen. At least it din't get worse"
+	"Never fix something that ain't broken they said. You didn't listen. At least it didn't get worse"
 }
 local noFixMessageCount = 6
 local noFixMessagePos = math.random(noFixMessageCount)
