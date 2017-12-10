@@ -9,13 +9,15 @@
 --	https://github.com/iEns/RealisticVehicleFailure
 --
 
+local deformationMultiplier = 10.0				-- How much should the vehicle visually deform from a collision. Range 0.0 to 10.0 Where 0.0 is no deformation and 10.0 is 10x deformation. -1 = Don't touch
+local weaponsDamageMultiplier = 0.01			-- How much damage should the vehicle get from weapons fire. Range 0.0 to 10.0, where 0.0 is no damage and 10.0 is 10x damage. -1 = don't touch
 local damageFactorEngine = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
 local damageFactorBody = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
 local damageFactorPetrolTank = 64.0				-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 64
 local cascadingFailureSpeedFactor = 8.0			-- Sane values are 1 to 100. When vehicle health drops below a certain point, cascading failure sets in, and the health drops rapidly until the vehicle dies. Higher values means faster failure. A good starting point is 8
 local degradingHealthSpeedFactor = 10			-- Speed of slowly degrading health, but not failure. Value of 10 means that it will take about 0.25 second per health point, so degradation from 800 to 305 will take about 2 minutes of clean driving.
 local degradingFailureThreshold = 800.0			-- Below this value, slow health degradation will set in
-local cascadingFailureThreshold = 300.0			-- Below this value, health cascading failure will set in
+local cascadingFailureThreshold = 360.0			-- Below this value, health cascading failure will set in
 local engineSafeGuard = 100.0					-- Final failure value. Set it too high, and the vehicle won't smoke when disabled. Set too low, and the car will catch fire from a single bullet to the engine. At health 100 a typical car can take 3-4 bullets to the engine before catching fire.
 local displayBlips = true						-- Show blips for mechanics locations
 
@@ -69,9 +71,11 @@ local noFixMessages = {
 local noFixMessageCount = 6
 local noFixMessagePos = math.random(noFixMessageCount)
 
-local pedInCarLast=false
+local pedInVehicleLast=false
+local lastVehicle
 local healthEngineLast = 1000.0
 local healthEngineCurrent = 1000.0
+
 local healthEngineNew = 1000.0
 local healthEngineDelta = 0.0
 local healthEngineDeltaScaled = 0.0
@@ -90,7 +94,7 @@ local healthPetrolTankDeltaScaled = 0.0
 
 -- Display blips on map
 Citizen.CreateThread(function()
-		if (displayBlips == true) then
+	if (displayBlips == true) then
 	  for _, item in pairs(mechanics) do
 		item.blip = AddBlipForCoord(item.x, item.y, item.z)
 		SetBlipSprite(item.blip, item.id)
@@ -187,7 +191,6 @@ Citizen.CreateThread(function()
 		local ped = GetPlayerPed(-1)
 		if isPedInVehicle() then
 			vehicle = GetVehiclePedIsIn(ped, false)
-
 			healthEngineCurrent = GetVehicleEngineHealth(vehicle)
 			if healthEngineCurrent == 1000 then healthBodyLast = 1000.0 end
 			healthEngineNew = healthEngineCurrent
@@ -214,7 +217,13 @@ Citizen.CreateThread(function()
 				SetVehicleUndriveable(vehicle,true)
 			end
 
-			if pedInCarLast == true then
+			-- If ped spawned a new vehicle while in a vehicle or teleported from one vehicle to another, handle as if we just entered the car
+			if vehicle ~= lastVehicle then
+				pedInVehicleLast = false
+			end
+
+
+			if pedInVehicleLast == true then
 				-- Damage happened while in the car, can be multiplied
 
 				-- Only do calculations if any damage is present on the car. Prevents weird behavior when fixing using trainer or other script
@@ -271,11 +280,15 @@ Citizen.CreateThread(function()
 			else
 				-- Just got in the vehicle. Damage can not be multiplied this round
 
+				-- Set vehicle handling data
+				if deformationMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult', deformationMultiplier) end
+				if weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fWeaponDamageMult', weaponsDamageMultiplier/damageFactorBody) end -- Set weaponsDamageMultiplier and compensate for damageFactorBody
+				
 				-- If body damage catastrophic, reset somewhat so we can get new damage to multiply
 				if healthBodyCurrent < cascadingFailureThreshold then
 					healthBodyNew = cascadingFailureThreshold
 				end
-				pedInCarLast = true
+				pedInVehicleLast = true
 			end
 
 			-- set the actual new values
@@ -287,8 +300,13 @@ Citizen.CreateThread(function()
 			healthEngineLast = healthEngineNew
 			healthBodyLast = healthBodyNew
 			healthPetrolTankLast = healthPetrolTankNew
+			lastVehicle=vehicle
 		else
-			pedInCarLast = false
+			if pedInVehicleLast == true then
+				-- We just got out of the car
+				if weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fWeaponDamageMult', weaponsDamageMultiplier) end	-- Since we are out of the vehicle, we should no longer compensate for bodyDamageFactor	
+			end
+			pedInVehicleLast = false
 		end
 	end
 end)
