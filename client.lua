@@ -9,17 +9,54 @@
 --	https://github.com/iEns/RealisticVehicleFailure
 --
 
+
+-- Configuration:
+
 local deformationMultiplier = 10.0				-- How much should the vehicle visually deform from a collision. Range 0.0 to 10.0 Where 0.0 is no deformation and 10.0 is 10x deformation. -1 = Don't touch
+local torqueMultiplierEnabled = true			-- Decrease engine torge as engine gets more and more damaged
 local weaponsDamageMultiplier = 0.01			-- How much damage should the vehicle get from weapons fire. Range 0.0 to 10.0, where 0.0 is no damage and 10.0 is 10x damage. -1 = don't touch
-local damageFactorEngine = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
-local damageFactorBody = 10.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
-local damageFactorPetrolTank = 64.0				-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 64
+local damageFactorEngine = 8.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
+local damageFactorBody = 8.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
+local damageFactorPetrolTank = 60.0				-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 64
 local cascadingFailureSpeedFactor = 8.0			-- Sane values are 1 to 100. When vehicle health drops below a certain point, cascading failure sets in, and the health drops rapidly until the vehicle dies. Higher values means faster failure. A good starting point is 8
-local degradingHealthSpeedFactor = 10			-- Speed of slowly degrading health, but not failure. Value of 10 means that it will take about 0.25 second per health point, so degradation from 800 to 305 will take about 2 minutes of clean driving.
+local degradingHealthSpeedFactor = 10			-- Speed of slowly degrading health, but not failure. Value of 10 means that it will take about 0.25 second per health point, so degradation from 800 to 305 will take about 2 minutes of clean driving. Higher values means faster degradation
 local degradingFailureThreshold = 800.0			-- Below this value, slow health degradation will set in
 local cascadingFailureThreshold = 360.0			-- Below this value, health cascading failure will set in
 local engineSafeGuard = 100.0					-- Final failure value. Set it too high, and the vehicle won't smoke when disabled. Set too low, and the car will catch fire from a single bullet to the engine. At health 100 a typical car can take 3-4 bullets to the engine before catching fire.
 local displayBlips = true						-- Show blips for mechanics locations
+
+-- Class Damagefactor Multiplier
+-- The damageFactor for engine, body and Petroltank will be multiplied by this value, depending on vehicle class
+-- Use it to increase or decrease damage for each class
+
+local classDamageMultiplier = {
+	[0] = 	1.0,		--	0: Compacts
+			1.0,		--	1: Sedans
+			1.0,		--	2: SUVs
+			1.0,		--	3: Coupes
+			1.0,		--	4: Muscle
+			1.0,		--	5: Sports Classics
+			1.0,		--	6: Sports
+			1.0,		--	7: Super
+			0.25,		--	8: Motorcycles
+			0.7,		--	9: Off-road
+			0.25,		--	10: Industrial
+			1.0,		--	11: Utility
+			1.0,		--	12: Vans
+			1.0,		--	13: Cycles
+			0.5,		--	14: Boats
+			1.0,		--	15: Helicopters
+			1.0,		--	16: Planes
+			1.0,		--	17: Service
+			0.75,		--	18: Emergency
+			0.75,		--	19: Military
+			1.0,		--	20: Commercial
+			1.0,		--	21: Trains
+}
+
+
+-- End of Configuration
+
 
 
 -- id=446 for wrench icon, id=72 for spraycan icon
@@ -73,9 +110,12 @@ local noFixMessagePos = math.random(noFixMessageCount)
 
 local pedInVehicleLast=false
 local lastVehicle
+local vehicleClass
+local fCollisionDamageMult
+local fDeformationDamageMult
+
 local healthEngineLast = 1000.0
 local healthEngineCurrent = 1000.0
-
 local healthEngineNew = 1000.0
 local healthEngineDelta = 0.0
 local healthEngineDeltaScaled = 0.0
@@ -184,30 +224,44 @@ function isPedInVehicle()
 	return false
 end
 
+if torqueMultiplierEnabled then
+	Citizen.CreateThread(function()
+		while true do
+			Citizen.Wait(2)
+			if healthEngineNew < 900 then
+				if isPedInVehicle() then
+					local factor = (healthEngineNew+200.0) / 1100
+					SetVehicleEngineTorqueMultiplier(vehicle, factor) 
+				end
+			end
+		end
+	end)
+end
 
 Citizen.CreateThread(function()
 	while true do
-	Citizen.Wait(50)
+		Citizen.Wait(50)
 		local ped = GetPlayerPed(-1)
 		if isPedInVehicle() then
 			vehicle = GetVehiclePedIsIn(ped, false)
+			vehicleClass = GetVehicleClass(vehicle)
 			healthEngineCurrent = GetVehicleEngineHealth(vehicle)
 			if healthEngineCurrent == 1000 then healthBodyLast = 1000.0 end
 			healthEngineNew = healthEngineCurrent
 			healthEngineDelta = healthEngineLast - healthEngineCurrent
-			healthEngineDeltaScaled = healthEngineDelta * damageFactorEngine
+			healthEngineDeltaScaled = healthEngineDelta * damageFactorEngine * classDamageMultiplier[vehicleClass]
 			
 			healthBodyCurrent = GetVehicleBodyHealth(vehicle)
 			if healthBodyCurrent == 1000 then healthBodyLast = 1000.0 end
 			healthBodyNew = healthBodyCurrent
 			healthBodyDelta = healthBodyLast - healthBodyCurrent
-			healthBodyDeltaScaled = healthBodyDelta * damageFactorBody
+			healthBodyDeltaScaled = healthBodyDelta * damageFactorBody * classDamageMultiplier[vehicleClass]
 			
 			healthPetrolTankCurrent = GetVehiclePetrolTankHealth(vehicle)
 			if healthPetrolTankCurrent == 1000 then healthPetrolTankLast = 1000.0 end
 			healthPetrolTankNew = healthPetrolTankCurrent 
 			healthPetrolTankDelta = healthPetrolTankLast-healthPetrolTankCurrent
-			healthPetrolTankDeltaScaled = healthPetrolTankDelta * damageFactorPetrolTank
+			healthPetrolTankDeltaScaled = healthPetrolTankDelta * damageFactorPetrolTank * classDamageMultiplier[vehicleClass]
 			
 			if healthEngineCurrent > engineSafeGuard+1 then
 				SetVehicleUndriveable(vehicle,false)
@@ -224,12 +278,12 @@ Citizen.CreateThread(function()
 
 
 			if pedInVehicleLast == true then
-				-- Damage happened while in the car, can be multiplied
+				-- Damage happened while in the car = can be multiplied
 
 				-- Only do calculations if any damage is present on the car. Prevents weird behavior when fixing using trainer or other script
 				if healthEngineCurrent ~= 1000.0 or healthBodyCurrent ~= 1000.0 or healthPetrolTankCurrent ~= 1000.0 then
 
-					-- Combine the delta values
+					-- Combine the delta values (Get the largest of the three)
 					local healthEngineCombinedDelta = math.max(healthEngineDeltaScaled, healthBodyDeltaScaled, healthPetrolTankDeltaScaled)
 
 					-- If huge damage, scale back a bit
@@ -241,7 +295,6 @@ Citizen.CreateThread(function()
 					if healthEngineCombinedDelta > healthEngineCurrent then
 						healthEngineCombinedDelta = healthEngineCurrent - (cascadingFailureThreshold / 5)
 					end
-
 
 
 					------- Calculate new value
@@ -281,9 +334,16 @@ Citizen.CreateThread(function()
 				-- Just got in the vehicle. Damage can not be multiplied this round
 
 				-- Set vehicle handling data
-				if deformationMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult', deformationMultiplier) end
+				fDeformationDamageMult = GetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult')
+				if deformationMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult', fDeformationDamageMult * deformationMultiplier) end  -- Multiply by our factor
 				if weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fWeaponDamageMult', weaponsDamageMultiplier/damageFactorBody) end -- Set weaponsDamageMultiplier and compensate for damageFactorBody
 				
+				--Get the CollisionDamageMultiplier
+				fCollisionDamageMult = GetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fCollisionDamageMult')
+				--Modify it by pulling all number a towards 1.0
+				local newFCollisionDamageMultiplier = fCollisionDamageMult ^ 0.8
+				SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fCollisionDamageMult', newFCollisionDamageMultiplier)
+
 				-- If body damage catastrophic, reset somewhat so we can get new damage to multiply
 				if healthBodyCurrent < cascadingFailureThreshold then
 					healthBodyNew = cascadingFailureThreshold
@@ -292,10 +352,12 @@ Citizen.CreateThread(function()
 			end
 
 			-- set the actual new values
-			if healthEngineNew ~= healthEngineCurrent then SetVehicleEngineHealth(vehicle, healthEngineNew) end
+			if healthEngineNew ~= healthEngineCurrent then 
+				SetVehicleEngineHealth(vehicle, healthEngineNew) 
+			end
 			if healthBodyNew ~= healthBodyCurrent then SetVehicleBodyHealth(vehicle, healthBodyNew) end
 			if healthPetrolTankNew ~= healthPetrolTankCurrent then SetVehiclePetrolTankHealth(vehicle, healthPetrolTankNew) end
-
+			
 			-- Store current values, so we can calculate delta next time around
 			healthEngineLast = healthEngineNew
 			healthBodyLast = healthBodyNew
@@ -303,8 +365,10 @@ Citizen.CreateThread(function()
 			lastVehicle=vehicle
 		else
 			if pedInVehicleLast == true then
-				-- We just got out of the car
+				-- We just got out of the vehicle
+				SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult', fDeformationDamageMult)  -- Restore deformation multiplier
 				if weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fWeaponDamageMult', weaponsDamageMultiplier) end	-- Since we are out of the vehicle, we should no longer compensate for bodyDamageFactor	
+				SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fCollisionDamageMult', fCollisionDamageMult) -- Restore the original CollisionDamageMultiplier
 			end
 			pedInVehicleLast = false
 		end
