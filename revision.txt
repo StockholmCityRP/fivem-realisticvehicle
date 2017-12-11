@@ -1,3 +1,16 @@
+Version 0.5 beta (2017-12-11):
+* Moved config to a separate file for easier updating
+* Prevents flipping an upside down car over
+* Vehicle will progressively slow down as damage increases
+* Balanced the damage and visual damage to be more consistent across vehicle classes and types
+* Changes to handling values are now multiplied from existing values instead of just setting values. Preserves the differences between vehicles more (ie. armoured cars should be somewhat tough)
+* Damage multiplier can be set for each vehicle class separately
+* Fix for not resetting handling while exiting the vehicle
+
+Version 0.4 beta (2017-12-10):
+* Increased visual damage
+* Fix for problem with weapons damage while someone is in the vehicle
+
 Version 0.3 beta (2017-12-08):
 * Rewrite of algorithm to fix easy explosions from bullets
 * Disabled mod for planes, trains and helicopters
