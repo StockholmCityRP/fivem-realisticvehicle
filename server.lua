@@ -12,7 +12,7 @@
 
 
 local function checkWhitelist(id)
-	for _, value in pairs(RepairWhitelist) do
+	for key, value in pairs(RepairWhitelist) do
 		if id == value then
 			return true
 		end
