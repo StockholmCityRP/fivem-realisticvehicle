@@ -12,7 +12,7 @@
 
 -- Configuration:
 
-local deformationMultiplier = 10.0				-- How much should the vehicle visually deform from a collision. Range 0.0 to 10.0 Where 0.0 is no deformation and 10.0 is 10x deformation. -1 = Don't touch
+local deformationMultiplier = 5.0				-- How much should the vehicle visually deform from a collision. Range 0.0 to 10.0 Where 0.0 is no deformation and 10.0 is 10x deformation. -1 = Don't touch
 local torqueMultiplierEnabled = true			-- Decrease engine torge as engine gets more and more damaged
 local weaponsDamageMultiplier = 0.01			-- How much damage should the vehicle get from weapons fire. Range 0.0 to 10.0, where 0.0 is no damage and 10.0 is 10x damage. -1 = don't touch
 local damageFactorEngine = 8.0					-- Sane values are 1 to 100. Higher values means more damage to vehicle. A good starting point is 10
@@ -24,6 +24,7 @@ local degradingFailureThreshold = 800.0			-- Below this value, slow health degra
 local cascadingFailureThreshold = 360.0			-- Below this value, health cascading failure will set in
 local engineSafeGuard = 100.0					-- Final failure value. Set it too high, and the vehicle won't smoke when disabled. Set too low, and the car will catch fire from a single bullet to the engine. At health 100 a typical car can take 3-4 bullets to the engine before catching fire.
 local displayBlips = true						-- Show blips for mechanics locations
+local preventVehicleFlip = true					-- If true, you can't turn over an upside down vehicle
 
 -- Class Damagefactor Multiplier
 -- The damageFactor for engine, body and Petroltank will be multiplied by this value, depending on vehicle class
@@ -224,15 +225,22 @@ function isPedInVehicle()
 	return false
 end
 
-if torqueMultiplierEnabled then
+if torqueMultiplierEnabled or preventVehicleFlip then
 	Citizen.CreateThread(function()
 		while true do
-			Citizen.Wait(2)
-			if healthEngineNew < 900 then
+			Citizen.Wait(0)
+			if torqueMultiplierEnabled and healthEngineNew < 900 then
 				if isPedInVehicle() then
 					local factor = (healthEngineNew+200.0) / 1100
 					SetVehicleEngineTorqueMultiplier(vehicle, factor) 
 				end
+			end
+			if preventVehicleFlip then
+				local roll = GetEntityRoll(vehicle)
+				if (roll > 75.0 or roll < -75.0) then
+					DisableControlAction(0,59,true) -- Disable left/right
+					DisableControlAction(0,60,true) -- Disable up/down
+				end 
 			end
 		end
 	end)
@@ -332,10 +340,10 @@ Citizen.CreateThread(function()
 				end
 			else
 				-- Just got in the vehicle. Damage can not be multiplied this round
-
 				-- Set vehicle handling data
 				fDeformationDamageMult = GetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult')
-				if deformationMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult', fDeformationDamageMult * deformationMultiplier) end  -- Multiply by our factor
+				local newFDeformationDamageMult = fDeformationDamageMult ^ 0.4
+				if deformationMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult', newFDeformationDamageMult * deformationMultiplier) end  -- Multiply by our factor
 				if weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fWeaponDamageMult', weaponsDamageMultiplier/damageFactorBody) end -- Set weaponsDamageMultiplier and compensate for damageFactorBody
 				
 				--Get the CollisionDamageMultiplier
