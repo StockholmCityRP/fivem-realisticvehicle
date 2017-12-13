@@ -11,14 +11,14 @@
 
 -- id=446 for wrench icon, id=72 for spraycan icon
 
-local pedInVehicleLast=false
+local pedInSameVehicleLast=false
 local vehicle
 local lastVehicle
 local vehicleClass
-local fCollisionDamageMult
-local fDeformationDamageMult
-local fEngineDamageMult
-local fBrakeForce
+local fCollisionDamageMult = 0.0
+local fDeformationDamageMult = 0.0
+local fEngineDamageMult = 0.0
+local fBrakeForce = 1.0
 local fInitialDriveForce = 0.0
 local isBrakingForward = false
 local isBrakingReverse = false
@@ -187,7 +187,7 @@ if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
 		while true do
 			Citizen.Wait(0)
 			if cfg.torqueMultiplierEnabled or cfg.sundayDriver then
-				if isPedDrivingAVehicle() then
+				if pedInSameVehicleLast then
 					local factor = 1.0
 					if cfg.torqueMultiplierEnabled and healthEngineNew < 900 then
 						factor = (healthEngineNew+200.0) / 1100
@@ -197,7 +197,7 @@ if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
 						local brake = GetControlValue(2,72)
 						local speed = GetEntitySpeedVector(vehicle, true)['y']
 						-- Change Braking force
-						local brk = 1.0
+						local brk = fBrakeForce
 						if speed >= 1.0 then
 							-- Going forward
 							if accelerator > 127 then
@@ -223,28 +223,33 @@ if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
 								brk = fscale(accelerator, 127.0, 254.0, 0.01, fBrakeForce, 10.0-(cfg.sundayDriverBrakeCurve*2.0))
 							end
 						else
-							-- Stopped or almost stopped
-							if isBrakingForward == true then
-								--Stopped or going slightly forward while braking
-								DisableControlAction(2,72,true) -- Disable Brake until user lets go of brake
-								SetVehicleForwardSpeed(vehicle,speed*0.98)
-								SetVehicleBrakeLights(vehicle,true)
-							end
-							if isBrakingReverse == true then
-								--Stopped or going slightly in reverse while braking
-								DisableControlAction(2,71,true) -- Disable reverse Brake until user lets go of reverse brake (Accelerator)
-								SetVehicleForwardSpeed(vehicle,speed*0.98)
-								SetVehicleBrakeLights(vehicle,true)
-							end
-							if isBrakingForward == true and GetDisabledControlNormal(2,72) == 0 then
-								-- We let go of the brake
-								isBrakingForward=false
-							end
-							if isBrakingReverse == true and GetDisabledControlNormal(2,71) == 0 then
-								-- We let go of the reverse brake (Accelerator)
-								isBrakingReverse=false
+							-- Stopped or almost stopped or sliding sideways
+							local entitySpeed = GetEntitySpeed(vehicle)
+							if entitySpeed < 1 then
+								-- Not sliding sideways
+								if isBrakingForward == true then
+									--Stopped or going slightly forward while braking
+									DisableControlAction(2,72,true) -- Disable Brake until user lets go of brake
+									SetVehicleForwardSpeed(vehicle,speed*0.98)
+									SetVehicleBrakeLights(vehicle,true)
+								end
+								if isBrakingReverse == true then
+									--Stopped or going slightly in reverse while braking
+									DisableControlAction(2,71,true) -- Disable reverse Brake until user lets go of reverse brake (Accelerator)
+									SetVehicleForwardSpeed(vehicle,speed*0.98)
+									SetVehicleBrakeLights(vehicle,true)
+								end
+								if isBrakingForward == true and GetDisabledControlNormal(2,72) == 0 then
+									-- We let go of the brake
+									isBrakingForward=false
+								end
+								if isBrakingReverse == true and GetDisabledControlNormal(2,71) == 0 then
+									-- We let go of the reverse brake (Accelerator)
+									isBrakingReverse=false
+								end
 							end
 						end
+						if brk > fBrakeForce - 0.02 then brk = fBrakeForce end -- Make sure we can brake max.
 						SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fBrakeForce', brk)  -- Set new Brake Force multiplier
 					end
 					SetVehicleEngineTorqueMultiplier(vehicle, factor)
@@ -296,11 +301,11 @@ Citizen.CreateThread(function()
 
 			-- If ped spawned a new vehicle while in a vehicle or teleported from one vehicle to another, handle as if we just entered the car
 			if vehicle ~= lastVehicle then
-				pedInVehicleLast = false
+				pedInSameVehicleLast = false
 			end
 
 
-			if pedInVehicleLast == true then
+			if pedInSameVehicleLast == true then
 				-- Damage happened while in the car = can be multiplied
 
 				-- Only do calculations if any damage is present on the car. Prevents weird behavior when fixing using trainer or other script
@@ -358,7 +363,6 @@ Citizen.CreateThread(function()
 				-- Set vehicle handling data
 				fDeformationDamageMult = GetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult')
 				fBrakeForce = GetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fBrakeForce')
-				fInitialDriveForce = GetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fInitialDriveForce')
 				local newFDeformationDamageMult = fDeformationDamageMult ^ cfg.deformationExponent	-- Pull the handling file value closer to 1
 				if cfg.deformationMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fDeformationDamageMult', newFDeformationDamageMult * cfg.deformationMultiplier) end  -- Multiply by our factor
 				if cfg.weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fWeaponDamageMult', cfg.weaponsDamageMultiplier/cfg.damageFactorBody) end -- Set weaponsDamageMultiplier and compensate for damageFactorBody
@@ -379,7 +383,7 @@ Citizen.CreateThread(function()
 				if healthBodyCurrent < cfg.cascadingFailureThreshold then
 					healthBodyNew = cfg.cascadingFailureThreshold
 				end
-				pedInVehicleLast = true
+				pedInSameVehicleLast = true
 			end
 
 			-- set the actual new values
@@ -395,16 +399,16 @@ Citizen.CreateThread(function()
 			healthPetrolTankLast = healthPetrolTankNew
 			lastVehicle=vehicle
 		else
-			if pedInVehicleLast == true then
+			if pedInSameVehicleLast == true then
 				-- We just got out of the vehicle
-				SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fDeformationDamageMult', fDeformationDamageMult)  -- Restore deformation multiplier
-				SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fInitialDriveForce', fInitialDriveForce)  -- Restore Driveforce multiplier
+				lastVehicle = GetVehiclePedIsIn(ped, true)				
+				if cfg.deformationMultiplier ~= -1 then SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fDeformationDamageMult', fDeformationDamageMult) end -- Restore deformation multiplier
 				SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fBrakeForce', fBrakeForce)  -- Restore Brake Force multiplier
 				if cfg.weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fWeaponDamageMult', cfg.weaponsDamageMultiplier) end	-- Since we are out of the vehicle, we should no longer compensate for bodyDamageFactor
 				SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fCollisionDamageMult', fCollisionDamageMult) -- Restore the original CollisionDamageMultiplier
 				SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fEngineDamageMult', fEngineDamageMult) -- Restore the original EngineDamageMultiplier
 			end
-			pedInVehicleLast = false
+			pedInSameVehicleLast = false
 		end
 	end
 end)
