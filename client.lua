@@ -192,7 +192,7 @@ if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
 					if cfg.torqueMultiplierEnabled and healthEngineNew < 900 then
 						factor = (healthEngineNew+200.0) / 1100
 					end
-					if cfg.sundayDriver then
+					if cfg.sundayDriver and GetVehicleClass(vehicle) ~= 14 then -- Not for boats
 						local accelerator = GetControlValue(2,71)
 						local brake = GetControlValue(2,72)
 						local speed = GetEntitySpeedVector(vehicle, true)['y']
@@ -227,7 +227,6 @@ if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
 							if isBrakingForward == true then
 								--Stopped or going slightly forward while braking
 								DisableControlAction(2,72,true) -- Disable Brake until user lets go of brake
-								-- ?? Need to force vehicle to a complete stop ???
 								SetVehicleForwardSpeed(vehicle,speed*0.98)
 								SetVehicleBrakeLights(vehicle,true)
 							end
@@ -249,7 +248,6 @@ if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
 						SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fBrakeForce', brk)  -- Set new Brake Force multiplier
 					end
 					SetVehicleEngineTorqueMultiplier(vehicle, factor)
---					SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fInitialDriveForce', fInitialDriveForce * factor)  -- Set Driveforce multiplier
 				end
 			end
 			if cfg.preventVehicleFlip then
