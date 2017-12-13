@@ -1,5 +1,9 @@
 Version 0.6 beta (2017-12-13):
-* Sunday driver feature. Smooth acceleration and braking. Easy speed control makes it much easier to drive a steady slow speed. Brake holder feature prevents vehicle from switching direction after braking, and keeps the brakelight on while holding the brake.
+New "Sunday Driver" feature:
+* Smooth acceleration and braking.
+* Easy speed control makes it much easier to drive a steady slow speed.
+* Brake holder feature prevents vehicle from switching direction after braking
+* Keeps the brakelight on while holding the brake.
 
 Version 0.5 beta (2017-12-11):
 * Moved config to a separate file for easier updating

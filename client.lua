@@ -9,7 +9,6 @@
 --	https://github.com/iEns/RealisticVehicleFailure
 --
 
--- id=446 for wrench icon, id=72 for spraycan icon
 
 local pedInSameVehicleLast=false
 local vehicle
@@ -19,7 +18,6 @@ local fCollisionDamageMult = 0.0
 local fDeformationDamageMult = 0.0
 local fEngineDamageMult = 0.0
 local fBrakeForce = 1.0
-local fInitialDriveForce = 0.0
 local isBrakingForward = false
 local isBrakingReverse = false
 
@@ -131,7 +129,7 @@ local function fscale(inputValue, originalMin, originalMax, newBegin, newEnd, cu
 	if (invFlag == 0) then
 		rangedValue =  ((normalizedCurVal ^ curve) * NewRange) + newBegin
 	else
-		rangedValue =  newBegin - ((normalizedCurVal ^ curve) * NewRange) 
+		rangedValue =  newBegin - ((normalizedCurVal ^ curve) * NewRange)
 	end
 
 	return rangedValue
