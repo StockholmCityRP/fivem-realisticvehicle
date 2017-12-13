@@ -8,6 +8,7 @@ This is a mod for FiveM / GTA V that aims to create realistic vehicle failure.
 * Shooting at the engine or fuel tank will damage the vehicle, but not necessarily disable it completely.
 * When sustaining a certain amount of damage, the car will begin to degrade quickly and finally die.
 * Car will slow down progressively as damage increases.
+* Increases visual damage a lot
 * A vehicle that's upside down or on its side can't be turned over by the usual steering trick.
 * Car doesn't just stop suddenly when hitting something, but will often degrade, smoke and sputter before dying, and finally roll to a stop.
 * Car will not catch fire or explode, not even when landing on the roof.
