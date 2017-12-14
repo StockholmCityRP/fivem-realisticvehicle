@@ -255,7 +255,7 @@ if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
 			end
 			if cfg.preventVehicleFlip then
 				local roll = GetEntityRoll(vehicle)
-				if (roll > 75.0 or roll < -75.0) then
+				if (roll > 75.0 or roll < -75.0) and GetEntitySpeed(vehicle) < 2 then
 					DisableControlAction(2,59,true) -- Disable left/right
 					DisableControlAction(2,60,true) -- Disable up/down
 				end
