@@ -1,3 +1,7 @@
+Version 1.0 (2017-12-25):
+* Optional limp mode. If enabled, the vehicle will not die completely, but be able to drive slowly.
+* Optional alternative configuration, provided by ImDylan93
+
 Version 0.6 beta (2017-12-13):
 New "Sunday Driver" feature:
 * Smooth acceleration and braking.
