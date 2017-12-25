@@ -12,6 +12,7 @@ This is a mod for FiveM / GTA V that aims to create realistic vehicle failure.
 * Increases visual damage a lot  (Please note that visual damage doesn’t sync well to other players)
 * A vehicle that's upside down or on its side can't be turned over by the usual steering trick.
 * Car doesn't just stop suddenly when hitting something, but will often degrade, smoke and sputter before dying, and finally roll to a stop.
+* Optional limp mode. If enabled, the vehicle will not die completely, but be able to drive very slowly.
 * Car will not catch fire or explode, not even when landing on the roof.
 * Car is still reenterable, so you can fix it with a trainer.
 * Everything is configurable so you can fine tune the behavior to your liking
@@ -34,6 +35,8 @@ This is a mod for FiveM / GTA V that aims to create realistic vehicle failure.
 
 Lots of settings in config.lua.
 Each option is explained in the file.
+Be careful. Weird settings can cause weird behavior.
+If you restart the script (as you should after changing the settings) exit the car first, or spawn/steal a new car after. Failure to do so may cause odd behavior of the current car.
 
 ## Compatibility
 Known to be incompatible with BVA (Basic Vehicle Actions). Tested with BVA v2.01. If you turn off the vehicle using BVA, it is rendered inoperable. This is due to a bad implementation in BVA that sets the fuel tank health to zero when turning off the vehicle.
@@ -55,4 +58,4 @@ If you run a FiveM server, you know what to do... but these are the basic instru
 * Restart server or
 * Refresh + start [foldername]
 
-Where [foldername] is the folder in Resources where the two .lua files are located.
+Where [foldername] is the folder in Resources where the .lua files are located.

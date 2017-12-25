@@ -180,11 +180,11 @@ AddEventHandler('iens:notAllowed', function()
 	notification("~r~You don't have permission to repair vehicles")
 end)
 
-if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
+if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip or cfg.limpMode then
 	Citizen.CreateThread(function()
 		while true do
 			Citizen.Wait(0)
-			if cfg.torqueMultiplierEnabled or cfg.sundayDriver then
+			if cfg.torqueMultiplierEnabled or cfg.sundayDriver or cfg.limpMode then
 				if pedInSameVehicleLast then
 					local factor = 1.0
 					if cfg.torqueMultiplierEnabled and healthEngineNew < 900 then
@@ -250,12 +250,15 @@ if cfg.torqueMultiplierEnabled or cfg.preventVehicleFlip then
 						if brk > fBrakeForce - 0.02 then brk = fBrakeForce end -- Make sure we can brake max.
 						SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fBrakeForce', brk)  -- Set new Brake Force multiplier
 					end
+					if cfg.limpMode == true and healthEngineNew < cfg.engineSafeGuard + 5 then
+						factor = cfg.limpModeMultiplier
+					end
 					SetVehicleEngineTorqueMultiplier(vehicle, factor)
 				end
 			end
 			if cfg.preventVehicleFlip then
 				local roll = GetEntityRoll(vehicle)
-				if (roll > 75.0 or roll < -75.0) then
+				if (roll > 75.0 or roll < -75.0) and GetEntitySpeed(vehicle) < 2 then
 					DisableControlAction(2,59,true) -- Disable left/right
 					DisableControlAction(2,60,true) -- Disable up/down
 				end
@@ -293,7 +296,7 @@ Citizen.CreateThread(function()
 				SetVehicleUndriveable(vehicle,false)
 			end
 
-			if healthEngineCurrent <= cfg.engineSafeGuard+1 then
+			if healthEngineCurrent <= cfg.engineSafeGuard+1 and cfg.limpMode == false then
 				SetVehicleUndriveable(vehicle,true)
 			end
 
