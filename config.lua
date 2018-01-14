@@ -44,6 +44,8 @@ cfg = {
 
 	displayBlips = true,						-- Show blips for mechanics locations
 
+	compatibilityMode = true,					-- prevents other scripts from modifying the fuel tank health to avoid random engine failure with BVA 2.01 (Downside is it prevents engine on/off in BVA)
+
 
 	-- Class Damagefactor Multiplier
 	-- The damageFactor for engine, body and Petroltank will be multiplied by this value, depending on vehicle class

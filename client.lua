@@ -44,15 +44,16 @@ local noFixMessagePos = math.random(repairCfg.noFixMessageCount)
 
 -- Display blips on map
 Citizen.CreateThread(function()
+	math.randomseed(GetGameTimer());
 	if (cfg.displayBlips == true) then
-	  for _, item in pairs(repairCfg.mechanics) do
-		item.blip = AddBlipForCoord(item.x, item.y, item.z)
-		SetBlipSprite(item.blip, item.id)
-		SetBlipAsShortRange(item.blip, true)
-		BeginTextCommandSetBlipName("STRING")
-		AddTextComponentString(item.name)
-		EndTextCommandSetBlipName(item.blip)
-	  end
+		for _, item in pairs(repairCfg.mechanics) do
+			item.blip = AddBlipForCoord(item.x, item.y, item.z)
+			SetBlipSprite(item.blip, item.id)
+			SetBlipAsShortRange(item.blip, true)
+			BeginTextCommandSetBlipName("STRING")
+			AddTextComponentString(item.name)
+			EndTextCommandSetBlipName(item.blip)
+		end
 	end
 end)
 
@@ -275,7 +276,7 @@ Citizen.CreateThread(function()
 			vehicle = GetVehiclePedIsIn(ped, false)
 			vehicleClass = GetVehicleClass(vehicle)
 			healthEngineCurrent = GetVehicleEngineHealth(vehicle)
-			if healthEngineCurrent == 1000 then healthBodyLast = 1000.0 end
+			if healthEngineCurrent == 1000 then healthEngineLast = 1000.0 end
 			healthEngineNew = healthEngineCurrent
 			healthEngineDelta = healthEngineLast - healthEngineCurrent
 			healthEngineDeltaScaled = healthEngineDelta * cfg.damageFactorEngine * cfg.classDamageMultiplier[vehicleClass]
@@ -287,6 +288,11 @@ Citizen.CreateThread(function()
 			healthBodyDeltaScaled = healthBodyDelta * cfg.damageFactorBody * cfg.classDamageMultiplier[vehicleClass]
 
 			healthPetrolTankCurrent = GetVehiclePetrolTankHealth(vehicle)
+			if cfg.compatibilityMode and healthPetrolTankCurrent < 1 then
+				--	SetVehiclePetrolTankHealth(vehicle, healthPetrolTankLast)
+				--	healthPetrolTankCurrent = healthPetrolTankLast
+				healthPetrolTankLast = healthPetrolTankCurrent
+			end
 			if healthPetrolTankCurrent == 1000 then healthPetrolTankLast = 1000.0 end
 			healthPetrolTankNew = healthPetrolTankCurrent
 			healthPetrolTankDelta = healthPetrolTankLast-healthPetrolTankCurrent
@@ -350,7 +356,7 @@ Citizen.CreateThread(function()
 					end
 
 					-- Prevent Explosions
-					if healthPetrolTankCurrent < 750 then
+					if cfg.compatibilityMode == false and healthPetrolTankCurrent < 750 then
 						healthPetrolTankNew = 750.0
 					end
 
