@@ -38,13 +38,18 @@ local healthPetrolTankCurrent = 1000.0
 local healthPetrolTankNew = 1000.0
 local healthPetrolTankDelta = 0.0
 local healthPetrolTankDeltaScaled = 0.0
+local tireBurstLuckyNumber
+
+math.randomseed(GetGameTimer());
+
+local tireBurstMaxNumber = cfg.randomTireBurstInterval * 1200; 												-- the tire burst lottery runs roughly 1200 times per minute
+if cfg.randomTireBurstInterval ~= 0 then tireBurstLuckyNumber = math.random(tireBurstMaxNumber) end			-- If we hit this number again randomly, a tire will burst.
 
 local fixMessagePos = math.random(repairCfg.fixMessageCount)
 local noFixMessagePos = math.random(repairCfg.noFixMessageCount)
 
 -- Display blips on map
 Citizen.CreateThread(function()
-	math.randomseed(GetGameTimer());
 	if (cfg.displayBlips == true) then
 		for _, item in pairs(repairCfg.mechanics) do
 			item.blip = AddBlipForCoord(item.x, item.y, item.z)
@@ -135,6 +140,31 @@ local function fscale(inputValue, originalMin, originalMax, newBegin, newEnd, cu
 
 	return rangedValue
 end
+
+
+
+local function tireBurstLottery()
+	local tireBurstNumber = math.random(tireBurstMaxNumber)
+	if tireBurstNumber == tireBurstLuckyNumber then
+		-- We won the lottery, lets burst a tire.
+		if GetVehicleTyresCanBurst(vehicle) == false then return end
+		local numWheels = GetVehicleNumberOfWheels(vehicle)
+		local affectedTire
+		if numWheels == 2 then
+			affectedTire = (math.random(2)-1)*4		-- wheel 0 or 4
+		elseif numWheels == 4 then
+			affectedTire = (math.random(4)-1)
+			if affectedTire > 1 then affectedTire = affectedTire + 2 end	-- 0, 1, 4, 5
+		elseif numWheels == 6 then
+			affectedTire = (math.random(6)-1)
+		else
+			affectedTire = 0
+		end
+		SetVehicleTyreBurst(vehicle, affectedTire, false, 1000.0)
+		tireBurstLuckyNumber = math.random(tireBurstMaxNumber)			-- Select a new number to hit, just in case some numbers occur more often than others
+	end
+end
+
 
 RegisterNetEvent('iens:repair')
 AddEventHandler('iens:repair', function()
@@ -405,6 +435,7 @@ Citizen.CreateThread(function()
 			healthBodyLast = healthBodyNew
 			healthPetrolTankLast = healthPetrolTankNew
 			lastVehicle=vehicle
+			if cfg.randomTireBurstInterval ~= 0 and GetEntitySpeed(vehicle) > 10 then tireBurstLottery() end
 		else
 			if pedInSameVehicleLast == true then
 				-- We just got out of the vehicle
