@@ -51,13 +51,14 @@ local function notification(msg)
 end
 
 local function isPedDrivingAVehicle()
-	local ped = GetPlayerPed(-1)
+	local ped = PlayerPedId()
 	vehicle = GetVehiclePedIsIn(ped, false)
 	if IsPedInAnyVehicle(ped, false) then
 		-- Check if ped is in driver seat
 		if GetPedInVehicleSeat(vehicle, -1) == ped then
 			local class = GetVehicleClass(vehicle)
 			-- We don't want planes, helicopters, bicycles and trains
+
 			if class ~= 15 and class ~= 16 and class ~=21 and class ~=13 then
 				return true
 			end
@@ -77,7 +78,7 @@ local function fscale(inputValue, originalMin, originalMax, newBegin, newEnd, cu
 	if (curve > 10.0) then curve = 10.0 end
 	if (curve < -10.0) then curve = -10.0 end
 
-	curve = (curve * -.1)
+	curve = (curve * -0.1)
 	curve = 10.0 ^ curve
 
 	if (inputValue < originalMin) then
@@ -226,7 +227,7 @@ end
 Citizen.CreateThread(function()
 	while true do
 		Citizen.Wait(50)
-		local ped = GetPlayerPed(-1)
+		local ped = PlayerPedId()
 		if isPedDrivingAVehicle() then
 			vehicle = GetVehiclePedIsIn(ped, false)
 			vehicleClass = GetVehicleClass(vehicle)
